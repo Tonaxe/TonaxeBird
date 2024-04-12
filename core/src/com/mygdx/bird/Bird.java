@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -18,9 +19,17 @@ public class Bird extends Game {
 
 	AssetManager manager;
 
+	int topScore;
+	int lastScore;
+
+
 
 	@Override
 	public void create() {
+
+		topScore = 0;
+		lastScore = 0;
+
 		batch = new SpriteBatch();
 		// Create bitmap fonts from TrueType font
 		FreeTypeFontGenerator generator = new
@@ -42,6 +51,8 @@ public class Bird extends Game {
 		manager.load("pipe_up.png", Texture.class);
 		manager.load("pipe_down.png", Texture.class);
 		manager.load("background.png", Texture.class);
+		manager.load("flap.wav", Sound.class);
+		manager.load("fail.wav", Sound.class);
 		manager.finishLoading();
 
 		this.setScreen(new MainMenuScreen(this));
