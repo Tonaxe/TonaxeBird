@@ -32,6 +32,12 @@ public class GameScreen implements Screen {
     float initialPipeSpeed = 200;
     float currentPipeSpeed;
 
+    private Texture powerUpTexture;
+    private PowerUp powerUp;
+    private long lastPowerUpSpawnTime;
+
+    boolean firstPipePassed;
+
 
 
     public GameScreen(Bird game) {
@@ -40,6 +46,7 @@ public class GameScreen implements Screen {
         // create the camera and the SpriteBatch
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 800, 480);
+
 
         player = new Player();
         player.setManager(game.manager);
@@ -56,6 +63,8 @@ public class GameScreen implements Screen {
         tuberiaCount = false;
         tuberiasPasadas = 0;
         currentPipeSpeed = initialPipeSpeed;
+
+        firstPipePassed = false;
 
     }
 
@@ -88,7 +97,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-
         //LOGICA ========================================================
         stage.act();
         // tell the camera to update its matrices.
@@ -101,10 +109,11 @@ public class GameScreen implements Screen {
         // Comprova que el jugador no es surt de la pantalla.
         // Si surt per la part inferior, game over
         if (player.getBounds().y > 480 - player.getHeight())
-            player.setY( 480 - player.getHeight() );
+            player.setY(480 - player.getHeight());
         if (player.getBounds().y < 0 - player.getHeight()) {
             dead = true;
         }
+
 
         // Comprova si cal generar un obstacle nou
         if (TimeUtils.nanoTime() - lastObstacleTime > 1500000000)
@@ -128,6 +137,7 @@ public class GameScreen implements Screen {
                 pipe.setScored(true);
                 if (!tuberiaCount) {
                     tuberiaCount = true; // Marca que el pájaro ha pasado una tubería en el par actual
+                    firstPipePassed = true;
                 } else {
                     // El pájaro ha pasado ambas tuberías en el par actual
                     tuberiaCount = false; // Restablece el contador de tuberías
@@ -138,6 +148,7 @@ public class GameScreen implements Screen {
             }
         }
 
+
         // Treure de l'array les tuberies que estan fora de pantalla
         iter = obstacles.iterator();
         while (iter.hasNext()) {
@@ -147,20 +158,36 @@ public class GameScreen implements Screen {
             }
         }
 
-        if (dead)
-        {
+
+        // Generar power-up cada 5 segundos si no hay uno presente
+        if (powerUp == null && TimeUtils.nanoTime() - lastPowerUpSpawnTime > 5000000000L) {
+            spawnPowerUp();
+            lastPowerUpSpawnTime = TimeUtils.nanoTime();
+        } else if (powerUp != null && TimeUtils.nanoTime() - lastPowerUpSpawnTime > 5000000000L) {
+            // Si hay un power-up presente y ha pasado más de 5 segundos
+            powerUp.remove(); // Eliminar el power-up actual
+            powerUp = null;
+            spawnPowerUp(); // Generar uno nuevo
+            lastPowerUpSpawnTime = TimeUtils.nanoTime();
+        }
+
+
+        // Verificar colisión entre el jugador y el power-up si hay uno presente
+        if (powerUp != null && player.getBounds() != null && player.getBounds().overlaps(powerUp.getBounds())) {
+            // El jugador colisionó con el power-up
+            powerUp.remove(); // Elimina el power-up de la pantalla
+            powerUp = null; // Establece el power-up a null para indicar que ya no está presente
+        }
+
+        if (dead) {
             game.manager.get("fail.wav", Sound.class).play();
-            game.lastScore = (int)puntuacion;
-            if(game.lastScore > game.topScore)
+            game.lastScore = (int) puntuacion;
+            if (game.lastScore > game.topScore)
                 game.topScore = game.lastScore;
 
             game.setScreen(new GameOverScreen(game));
             dispose();
         }
-
-
-
-
 
         //RENDER ========================================================
         // clear the screen with a color
@@ -170,16 +197,21 @@ public class GameScreen implements Screen {
         game.batch.setProjectionMatrix(camera.combined);
         // begin a new batch
         game.batch.begin();
-        game.batch.draw(game.manager.get("background.png", Texture.class),0, 0);
+        game.batch.draw(game.manager.get("background.png", Texture.class), 0, 0);
+
+        // Renderizar power-up
+        if (powerUp != null) {
+            game.batch.draw(powerUp.getTexture(), powerUp.getX(), powerUp.getY());
+        }
+
         game.batch.end();
 
         stage.getBatch().setProjectionMatrix(camera.combined);
         stage.draw();
 
         game.batch.begin();
-        game.smallFont.draw(game.batch, "Score: " + (int)puntuacion, 10,470);
+        game.smallFont.draw(game.batch, "Score: " + (int) puntuacion, 10, 470);
         game.batch.end();
-
 
     }
 
@@ -188,12 +220,25 @@ public class GameScreen implements Screen {
         currentPipeSpeed += 20; // Aumenta la velocidad actual de las tuberías en 50 unidades
     }
 
+    private void spawnPowerUp() {
+        if (firstPipePassed && powerUp == null) {
+            powerUp = new PowerUp(powerUpTexture);
+            // Establecer la posición aleatoria del power-up evitando las tuberías
+            powerUp.setRandomPosition(0, Gdx.graphics.getWidth(), 0, Gdx.graphics.getHeight());
+            powerUp.setSpeed(currentPipeSpeed); // Establecer la misma velocidad que las tuberías
+            stage.addActor(powerUp);
+            lastPowerUpSpawnTime = TimeUtils.nanoTime();
+        }
+    }
+
+
 
     @Override
     public void resize(int width, int height) {
     }
     @Override
     public void show() {
+        powerUpTexture = new Texture("pastilla.png");
     }
     @Override
     public void hide() {
@@ -206,5 +251,6 @@ public class GameScreen implements Screen {
     }
     @Override
     public void dispose() {
+        powerUpTexture.dispose();
     }
 }
