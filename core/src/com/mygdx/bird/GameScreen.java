@@ -16,6 +16,8 @@ import java.util.Iterator;
 public class GameScreen implements Screen {
     final Bird game;
 
+    int puntuacion;
+
     OrthographicCamera camera;
 
     Array<Pipe> obstacles;
@@ -25,8 +27,11 @@ public class GameScreen implements Screen {
     Stage stage;
     Player player;
     boolean dead;
+    boolean tuberiaCount;
+    int tuberiasPasadas;
+    float initialPipeSpeed = 200;
+    float currentPipeSpeed;
 
-    float score;
 
 
     public GameScreen(Bird game) {
@@ -47,8 +52,10 @@ public class GameScreen implements Screen {
         spawnObstacle();
 
         dead = false;
-
-        score = 0;
+        puntuacion = 0;
+        tuberiaCount = false;
+        tuberiasPasadas = 0;
+        currentPipeSpeed = initialPipeSpeed;
 
     }
 
@@ -59,6 +66,7 @@ public class GameScreen implements Screen {
 
         // Crea dos obstacles: Una tubería superior i una inferior
         Pipe pipe1 = new Pipe();
+        pipe1.setSpeed(currentPipeSpeed);
         pipe1.setX(800);
         pipe1.setY(holey - 230);
         pipe1.setUpsideDown(true);
@@ -67,6 +75,7 @@ public class GameScreen implements Screen {
         stage.addActor(pipe1);
 
         Pipe pipe2 = new Pipe();
+        pipe2.setSpeed(currentPipeSpeed);
         pipe2.setX(800);
         pipe2.setY(holey + 200);
         pipe2.setUpsideDown(false);
@@ -74,6 +83,7 @@ public class GameScreen implements Screen {
         obstacles.add(pipe2);
         stage.addActor(pipe2);
         lastObstacleTime = TimeUtils.nanoTime();
+
     }
 
     @Override
@@ -96,7 +106,6 @@ public class GameScreen implements Screen {
             dead = true;
         }
 
-        score += delta;
         // Comprova si cal generar un obstacle nou
         if (TimeUtils.nanoTime() - lastObstacleTime > 1500000000)
             spawnObstacle();
@@ -112,6 +121,27 @@ public class GameScreen implements Screen {
         iter = obstacles.iterator();
         while (iter.hasNext()) {
             Pipe pipe = iter.next();
+            if (pipe.getBounds().overlaps(player.getBounds())) {
+                dead = true;
+            } else if (pipe.getX() + pipe.getWidth() < player.getX() && !pipe.isScored()) {
+                // El pájaro ha pasado esta tubería
+                pipe.setScored(true);
+                if (!tuberiaCount) {
+                    tuberiaCount = true; // Marca que el pájaro ha pasado una tubería en el par actual
+                } else {
+                    // El pájaro ha pasado ambas tuberías en el par actual
+                    tuberiaCount = false; // Restablece el contador de tuberías
+                    puntuacion++; // Incrementa la puntuación
+                    aumentarVelocidad();
+                    // Reproduce aquí cualquier sonido de puntuación si lo deseas
+                }
+            }
+        }
+
+        // Treure de l'array les tuberies que estan fora de pantalla
+        iter = obstacles.iterator();
+        while (iter.hasNext()) {
+            Pipe pipe = iter.next();
             if (pipe.getX() < -64) {
                 obstacles.removeValue(pipe, true);
             }
@@ -120,7 +150,7 @@ public class GameScreen implements Screen {
         if (dead)
         {
             game.manager.get("fail.wav", Sound.class).play();
-            game.lastScore = (int)score;
+            game.lastScore = (int)puntuacion;
             if(game.lastScore > game.topScore)
                 game.topScore = game.lastScore;
 
@@ -147,12 +177,17 @@ public class GameScreen implements Screen {
         stage.draw();
 
         game.batch.begin();
-        game.smallFont.draw(game.batch, "Score: " + (int)score, 10,
-                470);
+        game.smallFont.draw(game.batch, "Score: " + (int)puntuacion, 10,470);
         game.batch.end();
 
 
     }
+
+    private void aumentarVelocidad() {
+        // Aumenta la velocidad actual de las tuberías
+        currentPipeSpeed += 20; // Aumenta la velocidad actual de las tuberías en 50 unidades
+    }
+
 
     @Override
     public void resize(int width, int height) {

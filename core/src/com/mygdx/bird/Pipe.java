@@ -11,16 +11,23 @@ public class Pipe extends Actor {
     Rectangle bounds;
     boolean upsideDown;
     AssetManager manager;
+
+    float speed;
+
+
+    private boolean scored;
     Pipe()
     {
         setSize(64, 230);
         bounds = new Rectangle();
         setVisible(false);
+        scored = false;
     }
+
     @Override
     public void act(float delta)
     {
-        moveBy(-200 * delta, 0);
+        moveBy(-speed * delta, 0);
         bounds.set(getX(), getY(), getWidth(), getHeight());
         if(!isVisible())
             setVisible(true);
@@ -45,4 +52,8 @@ public class Pipe extends Actor {
     public void setManager(AssetManager manager) {
         this.manager = manager;
     }
+    public boolean isScored() {return scored;}
+    public void setScored(boolean scored) {this.scored = scored;}
+    public float getSpeed() {return speed;}
+    public void setSpeed(float speed) {this.speed = speed;}
 }
