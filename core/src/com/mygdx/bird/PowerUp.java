@@ -18,7 +18,7 @@ public class PowerUp extends Actor {
 
     public void setRandomPosition(float minX, float maxX, float minY, float maxY) {
         // Asegura que los límites estén dentro de los límites de la pantalla
-        float adjustedMinX = Math.max(minX, 0);
+        float adjustedMinX = Math.max(minX, 400); // La mitad de la pantalla por la derecha es 400
         float adjustedMaxX = Math.min(maxX, 800 - getWidth());
         float adjustedMinY = Math.max(minY, 0);
         float adjustedMaxY = Math.min(maxY, 480 - getHeight());

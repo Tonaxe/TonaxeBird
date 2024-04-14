@@ -40,6 +40,8 @@ public class GameScreen implements Screen {
 
     boolean poderes;
 
+    private long powerUpPickupTime;
+
 
 
     public GameScreen(Bird game) {
@@ -141,7 +143,13 @@ public class GameScreen implements Screen {
         while (iter.hasNext()) {
             Pipe pipe = iter.next();
             if (pipe.getBounds().overlaps(player.getBounds())) {
-                dead = true;
+                if (poderes) {
+                    // Si el jugador tiene poderes, simplemente ignora la colisión
+                    continue;
+                } else {
+                    // Si el jugador no tiene poderes, muere
+                    dead = true;
+                }
             } else if (pipe.getX() + pipe.getWidth() < player.getX() && !pipe.isScored()) {
                 // El pájaro ha pasado esta tubería
                 pipe.setScored(true);
@@ -206,6 +214,12 @@ public class GameScreen implements Screen {
             powerUp.remove(); // Elimina el power-up de la pantalla
             powerUp = null; // Establece el power-up a null para indicar que ya no está presente
             poderes = true;
+            powerUpPickupTime = TimeUtils.nanoTime(); // Guardar el tiempo de recogida de la pastilla
+        }
+
+        // Verificar si han pasado más de 5 segundos desde que se recogió la pastilla
+        if (poderes && TimeUtils.timeSinceNanos(powerUpPickupTime) > 3000000000L) {
+            poderes = false; // Desactivar los poderes después de 5 segundos
         }
 
         if (dead) {
@@ -253,14 +267,12 @@ public class GameScreen implements Screen {
         if (firstPipePassed && powerUp == null) {
             powerUp = new PowerUp(powerUpTexture);
             // Establecer la posición aleatoria del power-up evitando las tuberías
-            powerUp.setRandomPosition(0, Gdx.graphics.getWidth(), 0, Gdx.graphics.getHeight());
+            powerUp.setRandomPosition(Gdx.graphics.getWidth() / 2, Gdx.graphics.getWidth(), 0, Gdx.graphics.getHeight());
             powerUp.setSpeed(currentPipeSpeed); // Establecer la misma velocidad que las tuberías
             stage.addActor(powerUp);
             lastPowerUpSpawnTime = TimeUtils.nanoTime();
         }
     }
-
-
 
     @Override
     public void resize(int width, int height) {
