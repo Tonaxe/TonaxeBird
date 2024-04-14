@@ -12,6 +12,7 @@ public class Pipe extends Actor {
     boolean upsideDown;
     AssetManager manager;
 
+    boolean avoidCollision = false;
     float speed;
 
 

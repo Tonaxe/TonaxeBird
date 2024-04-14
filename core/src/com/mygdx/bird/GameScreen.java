@@ -38,6 +38,8 @@ public class GameScreen implements Screen {
 
     boolean firstPipePassed;
 
+    boolean poderes;
+
 
 
     public GameScreen(Bird game) {
@@ -65,6 +67,7 @@ public class GameScreen implements Screen {
         currentPipeSpeed = initialPipeSpeed;
 
         firstPipePassed = false;
+        poderes = false;
 
     }
 
@@ -118,12 +121,19 @@ public class GameScreen implements Screen {
         // Comprova si cal generar un obstacle nou
         if (TimeUtils.nanoTime() - lastObstacleTime > 1500000000)
             spawnObstacle();
-        // Comprova si les tuberies colisionen amb el jugador
+        // Comprobar colisión con las tuberías
         Iterator<Pipe> iter = obstacles.iterator();
         while (iter.hasNext()) {
             Pipe pipe = iter.next();
-            if (pipe.getBounds().overlaps(player.getBounds())) {
-                dead = true;
+            if (!poderes && pipe.getBounds().overlaps(player.getBounds())) {
+                if (!dead) { // Solo si el jugador no está muerto
+                    // El jugador colisionó con una tubería, pero no tiene poderes, así que desactivamos los poderes
+                    poderes = false;
+                    if (pipe.isScored()) {
+                        // Si la tubería ya ha sido pasada, simplemente ignora la colisión
+                        continue;
+                    }
+                }
             }
         }
         // Treure de l'array les tuberies que estan fora de pantalla
@@ -171,12 +181,31 @@ public class GameScreen implements Screen {
             lastPowerUpSpawnTime = TimeUtils.nanoTime();
         }
 
+        // Después de pasar una tubería, desactivar los poderes si no hay otro power-up recogido
+        if (!dead) {
+            iter = obstacles.iterator();
+            while (iter.hasNext()) {
+                Pipe pipe = iter.next();
+                if (pipe.getX() + pipe.getWidth() < player.getX() && !pipe.isScored()) {
+                    pipe.setScored(true);
+                    if (!tuberiaCount) {
+                        tuberiaCount = true;
+                        firstPipePassed = true;
+                    } else {
+                        tuberiaCount = false;
+                        puntuacion++;
+                        aumentarVelocidad();
+                    }
+                }
+            }
+        }
 
         // Verificar colisión entre el jugador y el power-up si hay uno presente
         if (powerUp != null && player.getBounds() != null && player.getBounds().overlaps(powerUp.getBounds())) {
             // El jugador colisionó con el power-up
             powerUp.remove(); // Elimina el power-up de la pantalla
             powerUp = null; // Establece el power-up a null para indicar que ya no está presente
+            poderes = true;
         }
 
         if (dead) {
